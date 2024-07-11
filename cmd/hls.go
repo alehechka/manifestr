@@ -16,10 +16,9 @@ const (
 
 var hlsFlags = []cli.Flag{
 	&cli.StringFlag{
-		Name:     ArgDirectory,
-		Aliases:  []string{"d", "dir"},
-		Usage:    fmt.Sprintf("Specify a directory to download files to and/or use as an existing location to skip downloading files that exist (see --%s for more details).", ArgForceDownload),
-		Required: true,
+		Name:    ArgDirectory,
+		Aliases: []string{"d", "dir"},
+		Usage:   fmt.Sprintf("Specify a directory to download files to and/or use as an existing location to skip downloading files that exist (see --%s for more details).", ArgForceDownload),
 	},
 	&cli.BoolFlag{
 		Name:  ArgForceDownload,
@@ -46,7 +45,7 @@ func hls(ctx *cli.Context) (err error) {
 		return err
 	}
 
-	manifest, err := models.ReadManifestFromFile(manifestPath)
+	manifest, err := models.ReadManifestFromFile(manifestPath, manifestUrl)
 	if err != nil {
 		return err
 	}
