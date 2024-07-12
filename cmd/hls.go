@@ -56,6 +56,10 @@ func hls(ctx *cli.Context) (err error) {
 
 	manifest.DownloadAllFragments(directory, forceDownload)
 
+	if _, err := manifest.ConcatToMp4s(directory); err != nil {
+		return err
+	}
+
 	return
 }
 

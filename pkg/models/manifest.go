@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"log/slog"
+	"manifestr/pkg/ffmpeg"
 	"manifestr/pkg/utils"
 	"net/url"
 	"os"
@@ -61,6 +62,62 @@ func (manifest Manifest) IsFmp4() bool {
 	}
 
 	return false
+}
+
+func (manifest Manifest) ConcatToMp4s(dir string) ([]string, error) {
+	files := make([]string, 0)
+
+	for index, discontinuity := range manifest.Discontinuities {
+		outFileName := fmt.Sprintf("d%04d", index)
+		if manifest.IsFmp4() {
+			outFileName += ".mp4"
+		} else {
+			outFileName += ".ts"
+		}
+
+		outFilePath := path.Join(dir, outFileName)
+		out, err := os.Create(outFilePath)
+		if err != nil {
+			return files, err
+		}
+		defer out.Close()
+
+		if discontinuity.InitFile != "" {
+			initFile, err := os.Open(path.Join(dir, discontinuity.InitFileName()))
+			if err != nil {
+				return files, err
+			}
+			if _, err := io.Copy(out, initFile); err != nil {
+				return files, err
+			}
+		}
+
+		for _, entry := range discontinuity.Entries {
+			filename := entry.MpegTsFilename()
+			if manifest.IsFmp4() {
+				filename = entry.Fmp4Filename()
+			}
+			fragment, err := os.Open(path.Join(dir, filename))
+			if err != nil {
+				return files, err
+			}
+			if _, err := io.Copy(out, fragment); err != nil {
+				return files, err
+			}
+		}
+
+		if manifest.IsFmp4() {
+			files = append(files, out.Name())
+		} else {
+			outputMp4 := fmt.Sprintf("%s.mp4", strings.TrimSuffix(outFileName, path.Ext(outFileName)))
+			if err := ffmpeg.TransmuxMpegTsBlob(outFilePath, outputMp4); err != nil {
+				return files, err
+			}
+			files = append(files, outputMp4)
+		}
+	}
+
+	return files, nil
 }
 
 func (manifest Manifest) DownloadAllFragments(dir string, forceDownload bool) {
