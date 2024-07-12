@@ -12,6 +12,7 @@ import (
 const (
 	ArgDirectory     = "directory"
 	ArgForceDownload = "force-download"
+	ArgConcatMp4     = "concat-mp4"
 )
 
 var hlsFlags = []cli.Flag{
@@ -23,6 +24,10 @@ var hlsFlags = []cli.Flag{
 	&cli.BoolFlag{
 		Name:  ArgForceDownload,
 		Usage: fmt.Sprintf("Used in conjunction with --%s to force download all files in a manifest when they exist in the provided directory.", ArgDirectory),
+	},
+	&cli.BoolFlag{
+		Name:  ArgConcatMp4,
+		Usage: "After downloading all fragments will concat them and transmux if needed into an MP4 file.",
 	},
 }
 
@@ -56,8 +61,10 @@ func hls(ctx *cli.Context) (err error) {
 
 	manifest.DownloadAllFragments(directory, forceDownload)
 
-	if _, err := manifest.ConcatToMp4s(directory); err != nil {
-		return err
+	if ctx.Bool(ArgConcatMp4) {
+		if _, err := manifest.ConcatToMp4s(directory); err != nil {
+			return err
+		}
 	}
 
 	return
